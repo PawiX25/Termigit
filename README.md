@@ -22,23 +22,31 @@ Termigit is a terminal-based Git client built with Python and Textual, providing
 
 ## Installation
 
+### Method 1: Install from source
+
 1. Clone this repository:
 ```
 git clone https://github.com/PawiX25/Termigit.git
 cd Termigit
 ```
 
-2. Install dependencies:
+2. Install the package globally:
 ```
-pip install -r requirements.txt
+pip install -e .
+```
+
+### Method 2: Direct installation
+
+```
+pip install git+https://github.com/PawiX25/Termigit.git
 ```
 
 ## Usage
 
-Run the application:
+After installation, you can run Termigit from anywhere:
 
 ```
-python termigit.py
+termigit
 ```
 
 ### Keyboard Navigation
