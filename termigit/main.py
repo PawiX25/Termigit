@@ -335,6 +335,7 @@ ListItem:focus {
 
     def on_commit_selected(self, message: CommitSelected) -> None:
         self.query_one(DiffView).show_diff(message.commit)
+        self._switch_to_view("diff-view")
 
     def on_branch_selected(self, message: BranchSelected) -> None:
         self.selected_branch = message.branch
