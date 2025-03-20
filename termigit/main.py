@@ -107,6 +107,66 @@ class DiffView(Container):
         diff_widget = self.query_one("#diff-content", Static)
         diff_widget.update(diff_content)
 
+class StatusView(Container):
+    def compose(self) -> ComposeResult:
+        yield Static("Status View (Press '4')", id="status-title")
+        yield ScrollableContainer(Static("", id="status-content", markup=False), id="status-scroll")
+
+    def on_mount(self) -> None:
+        status_widget = self.query_one("#status-content", Static)
+        status_widget.update("Select a repository to view status information")
+        self.current_repo_path = None
+
+    def load_status(self, repo_path):
+        self.current_repo_path = repo_path
+        try:
+            repo = git.Repo(repo_path)
+            status_content = ""
+            
+            active_branch = repo.active_branch.name
+            status_content += f"On branch {active_branch}\n"
+            
+            if not repo.is_dirty() and not repo.untracked_files:
+                status_content += "\nNothing to commit, working tree clean\n"
+                status_widget = self.query_one("#status-content", Static)
+                status_widget.update(status_content)
+                return
+
+            staged_changes = []
+            for item in repo.index.diff(repo.head.commit):
+                staged_changes.append(f"  {item.a_path} ({item.change_type})")
+
+            unstaged_changes = []
+            for item in repo.index.diff(None):
+                unstaged_changes.append(f"  {item.a_path} ({item.change_type})")
+
+            untracked_files = repo.untracked_files
+            
+            if staged_changes:
+                status_content += "\nChanges to be committed:\n"
+                status_content += "  (use 'git restore --staged <file>...' to unstage)\n\n"
+                status_content += "\n".join(staged_changes) + "\n"
+            
+            if unstaged_changes:
+                status_content += "\nChanges not staged for commit:\n"
+                status_content += "  (use 'git add <file>...' to update what will be committed)\n"
+                status_content += "  (use 'git restore <file>...' to discard changes)\n\n"
+                status_content += "\n".join(unstaged_changes) + "\n"
+            
+            if untracked_files:
+                status_content += "\nUntracked files:\n"
+                status_content += "  (use 'git add <file>...' to include in what will be committed)\n\n"
+                status_content += "\n".join(f"  {file}" for file in untracked_files) + "\n"
+                
+            status_widget = self.query_one("#status-content", Static)
+            status_widget.update(status_content)
+        except git.InvalidGitRepositoryError:
+            status_widget = self.query_one("#status-content", Static)
+            status_widget.update("Not a valid Git repository")
+        except Exception as e:
+            status_widget = self.query_one("#status-content", Static)
+            status_widget.update(f"Error loading status: {str(e)}")
+
 class BlameView(Container):
     def compose(self) -> ComposeResult:
         yield Static("Blame View (Press 'g')", id="blame-title")
@@ -267,13 +327,13 @@ ListItem:focus {
     width: 75%;
 }
 
-#history-view, #diff-view, #blame-view {
+#history-view, #diff-view, #blame-view, #status-view {
     border: solid #485263;
     padding: 1;
     height: 100%;
 }
 
-#commit-title, #diff-title, #branch-title, #repo-title, #file-title, #blame-title {
+#commit-title, #diff-title, #branch-title, #repo-title, #file-title, #blame-title, #status-title {
     background: #374151;
     color: #FFFFFF;
     text-align: center;
@@ -287,11 +347,13 @@ ListItem:focus {
         ("1", "switch_history", "History View"),
         ("2", "switch_diff", "Diff View"),
         ("3", "switch_blame", "Blame View"),
+        ("4", "switch_status", "Status View"),
         ("c", "focus_commits", "Commits"),
         ("d", "focus_diff", "Diff"),
         ("b", "focus_branches", "Branches"),
         ("f", "focus_files", "Files"),
         ("g", "focus_blame", "Blame"),
+        ("t", "focus_status", "Status"),
         ("s", "switch_branch", "Switch Branch"),
     ]
 
@@ -310,6 +372,7 @@ ListItem:focus {
                 yield HistoryView(id="history-view")
                 yield DiffView(id="diff-view")
                 yield BlameView(id="blame-view")
+                yield StatusView(id="status-view")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -336,6 +399,7 @@ ListItem:focus {
                     self.query_one(CommitView).load_commits(path)
                     self.query_one(BranchView).load_branches(path)
                     self.query_one(FileView).load_files(path)
+                    self.query_one(StatusView).load_status(path)
                 elif tree_id == "file-tree" and self.current_repo:
                     self.current_file = path
                     self.query_one(BlameView).show_blame(self.current_repo, path)
@@ -376,11 +440,19 @@ ListItem:focus {
         self._switch_to_view("blame-view")
         self.query_one("#blame-scroll").focus()
 
+    def action_focus_status(self):
+        self._switch_to_view("status-view")
+        self.query_one("#status-scroll").focus()
+
+    def action_switch_status(self):
+        self._switch_to_view("status-view")
+
     def action_refresh(self):
         if self.current_repo:
             self.query_one(CommitView).load_commits(self.current_repo)
             self.query_one(BranchView).load_branches(self.current_repo)
             self.query_one(FileView).load_files(self.current_repo)
+            self.query_one(StatusView).load_status(self.current_repo)
             if self.current_file:
                 self.query_one(BlameView).show_blame(self.current_repo, self.current_file)
 
