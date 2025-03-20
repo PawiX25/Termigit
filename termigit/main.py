@@ -342,6 +342,7 @@ ListItem:focus {
 
     def action_switch_branch(self) -> None:
         if hasattr(self, "selected_branch"):
+            self._switch_to_view("history-view")
             branch_view = self.query_one(BranchView)
             success = branch_view.switch_branch(self.selected_branch.name)
             if success and self.current_repo:
@@ -349,18 +350,22 @@ ListItem:focus {
                 self.query_one(FileView).load_files(self.current_repo)
 
     def action_focus_commits(self):
+        self._switch_to_view("history-view")
         self.query_one("#commit-list").focus()
 
     def action_focus_diff(self):
+        self._switch_to_view("diff-view")
         self.query_one("#diff-scroll").focus()
 
     def action_focus_branches(self):
+        self._switch_to_view("history-view")
         self.query_one("#branch-list").focus()
 
     def action_focus_files(self):
         self.query_one("#file-tree").focus()
 
     def action_focus_blame(self):
+        self._switch_to_view("blame-view")
         self.query_one("#blame-scroll").focus()
 
     def action_refresh(self):
