@@ -77,6 +77,10 @@ class DiffView(Container):
         yield Static("Diff View", id="diff-title")
         yield ScrollableContainer(Static("", id="diff-content", markup=False), id="diff-scroll")
 
+    def on_mount(self) -> None:
+        diff_widget = self.query_one("#diff-content", Static)
+        diff_widget.update("Select a commit from the History View to see diff details")
+
     def show_diff(self, commit):
         diff_content = ""
         diff_content += f"Commit: {commit.hexsha}\n"
@@ -107,6 +111,10 @@ class BlameView(Container):
     def compose(self) -> ComposeResult:
         yield Static("Blame View (Press 'g')", id="blame-title")
         yield ScrollableContainer(Static("", id="blame-content", markup=False), id="blame-scroll")
+
+    def on_mount(self) -> None:
+        blame_widget = self.query_one("#blame-content", Static)
+        blame_widget.update("Select a file from the file tree to view blame information")
 
     def show_blame(self, repo_path, file_path=None):
         if not file_path:
